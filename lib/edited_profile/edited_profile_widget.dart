@@ -1,4 +1,6 @@
 import '../backend/api_requests/api_calls.dart';
+import '../backend/pubilc_.dart';
+import '../custom_code/actions/notifica.dart';
 import '../flutter_flow/flutter_flow_drop_down.dart';
 import '../flutter_flow/flutter_flow_theme.dart';
 import '../flutter_flow/flutter_flow_util.dart';
@@ -6,16 +8,16 @@ import '../flutter_flow/flutter_flow_widgets.dart';
 import '../custom_code/actions/index.dart' as actions;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert' as convert;
 
 class EditProfileWidget extends StatefulWidget {
-  const EditProfileWidget({
-    Key? key,
-    this.name,
-    this.nickname,
-  }) : super(key: key);
+  const EditProfileWidget({Key? key, this.name, this.nickname, this.actor})
+      : super(key: key);
 
   final String? name;
   final String? nickname;
+  final String? actor;
 
   @override
   _EditProfileWidgetState createState() => _EditProfileWidgetState();
@@ -24,21 +26,67 @@ class EditProfileWidget extends StatefulWidget {
 class _EditProfileWidgetState extends State<EditProfileWidget> {
   ApiCallResponse? stateUpdatProfile;
   String? dropDownValue1;
-  TextEditingController? textController1;
-  TextEditingController? textController2;
+  TextEditingController? firstController;
+  TextEditingController? lastController;
   TextEditingController? textController3;
   TextEditingController? textController4;
   String? dropDownValue2;
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  updateMyUserActor(
+      {required String idUser,
+      required String actor,
+      required String frist_name,
+      required String last_name,
+      String? group}) async {
+    try {
+      final res =
+          await http.patch(Uri.parse("$url/api/admin/updateUser/$idUser"),
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Access-Control_Allow_Origin': '*',
+                'x-access-token': '${FFAppState().tokenStore}',
+              },
+              body: group == null
+                  ? convert.json.encode({
+                      "actor": "${actor}",
+                      "frist_name": "$frist_name",
+                      "last_name": "$last_name",
+                    })
+                  : convert.json.encode({
+                      "actor": "${actor}",
+                      "frist_name": "$frist_name",
+                      "last_name": "$last_name",
+                      // "name_group": "$group"
+                    }));
+      // await Future.delayed(Duration(seconds: 3));
+      // print("getGroupManagerModel body ${res.body}");
+      print("getGroupManagerModel state ${res.statusCode}");
+
+      if (res.statusCode == 200) {
+        await notifica(context, "แก้ไขโปรไฟล์สำเร็จ", color: Colors.green);
+        Navigator.pop(context);
+      } else {
+        await notifica(
+          context,
+          "แก้ไขโปรไฟล์ไม่สำเร็จ",
+        );
+        return res;
+      }
+    } catch (error) {
+      print(error);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    textController1 = TextEditingController(text: widget.name);
-    textController2 = TextEditingController(text: widget.nickname);
+    firstController = TextEditingController(text: widget.name);
+    lastController = TextEditingController(text: widget.nickname);
     textController3 =
         TextEditingController(text: 'แพทยศาสตร์ มหาวิทยาลัยพะเยา');
     textController4 = TextEditingController(text: 'วิชาเวรกิจฉุกเฉิน');
+    dropDownValue1 = "${widget.actor}";
   }
 
   @override
@@ -120,7 +168,7 @@ class _EditProfileWidgetState extends State<EditProfileWidget> {
                                   ),
                                 ),
                                 TextFormField(
-                                  controller: textController1,
+                                  controller: firstController,
                                   obscureText: false,
                                   decoration: InputDecoration(
                                     hintText: 'กรอกชื่อที่นี้',
@@ -163,7 +211,7 @@ class _EditProfileWidgetState extends State<EditProfileWidget> {
                                   ),
                                 ),
                                 TextFormField(
-                                  controller: textController2,
+                                  controller: lastController,
                                   obscureText: false,
                                   decoration: InputDecoration(
                                     hintText: 'กรอกชื่อที่นี้',
@@ -283,7 +331,12 @@ class _EditProfileWidgetState extends State<EditProfileWidget> {
                                   padding: EdgeInsetsDirectional.fromSTEB(
                                       0, 30, 0, 0),
                                   child: FlutterFlowDropDown(
-                                    options: ['Option 1', 'Option 2'],
+                                    initialOption: dropDownValue1,
+                                    options: [
+                                      "ผู้อำนวยการ",
+                                      'พยาบาล',
+                                      'หัวหน้าพยาบาล'
+                                    ],
                                     onChanged: (val) =>
                                         setState(() => dropDownValue1 = val),
                                     width: double.infinity,
@@ -339,55 +392,23 @@ class _EditProfileWidgetState extends State<EditProfileWidget> {
                                 EdgeInsetsDirectional.fromSTEB(20, 50, 20, 50),
                             child: FFButtonWidget(
                               onPressed: () async {
-                                
                                 await Future.delayed(Duration(seconds: 2));
-                                // var _shouldSetState = false;
-                                // if (widget.name != null && widget.name != '') {
-                                //   if (widget.nickname != null &&
-                                //       widget.nickname != '') {
-                                //     stateUpdatProfile =
-                                //         await UpdateProfileCall.call(
-                                //       fristName: widget.name,
-                                //       lastName: widget.nickname,
-                                //     );
-                                //     _shouldSetState = true;
-                                //     if ((stateUpdatProfile?.statusCode ??
-                                //             200) ==
-                                //         200) {
-                                //       await actions.notifica(
-                                //         context,
-                                //         'บันทึกสำเร็จ',
-                                //       );
-                                //       Navigator.pop(context);
-                                //       if (_shouldSetState) setState(() {});
-                                //       return;
-                                //     } else {
-                                //       await actions.notifica(
-                                //         context,
-                                //         'เชื่อมต่อ api ไม่สำเร็จ',
-                                //       );
-                                //       if (_shouldSetState) setState(() {});
-                                //       return;
-                                //     }
-                                //   } else {
-                                //     await actions.notifica(
-                                //       context,
-                                //       'กรุณากรอกนามสกุล',
-                                //     );
-                                //     if (_shouldSetState) setState(() {});
-                                //     return;
-                                //   }
-                                // } else {
-                                //   await actions.notifica(
-                                //     context,
-                                //     'กรุณากรอกชื่อให้ครบ',
-                                //   );
-                                //   if (_shouldSetState) setState(() {});
-                                //   return;
-                                // }
 
-                                // if (_shouldSetState) setState(() {});
-                                
+                                if (widget.name != null && widget.name != '') {
+                                  if (widget.nickname != null &&
+                                      widget.nickname != '') {
+                                    updateMyUserActor(
+                                        idUser: "${FFAppState().id}",
+                                        actor: "$dropDownValue1",
+                                        frist_name: "${firstController!.text}",
+                                        last_name: "${lastController!.text}");
+                                  }
+                                } else {
+                                  await actions.notifica(
+                                    context,
+                                    'กรุณากรอกชื่อให้ครบ',
+                                  );
+                                }
                               },
                               text: 'บันทึก',
                               options: FFButtonOptions(

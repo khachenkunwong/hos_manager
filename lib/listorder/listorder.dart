@@ -16,7 +16,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert' as convert;
 import '../model/group_manager_model.dart';
 import '../model/not_manager_group_model.dart';
+import '../model/profile_model.dart';
 import 'creategroup_widget.dart';
+import 'details.dart';
 import 'itemnotmanagegroup.dart';
 import 'menuitem.dart';
 
@@ -46,6 +48,9 @@ class _ListOrderState extends State<ListOrder> {
   late Future<GetGroupManagerModelAdmin> futureManagerGroup;
   late TooltipBehavior _tooltipBehavior;
   late SelectionBehavior _selectionBehavior;
+  late Future<Data> futureProfile;
+
+  List<String> grouplist = [];
 
   String choiceChipsValue = "พยาบาล";
 
@@ -137,6 +142,38 @@ class _ListOrderState extends State<ListOrder> {
     return GetGroupManagerModelAdmin();
   }
 
+  Future<Data> getProfile({required String token}) async {
+    try {
+      final res = await http.get(
+        Uri.parse("$url/api/me/profile"),
+        headers: {
+          'content-type': 'application/json',
+          'Access-Control_Allow_Origin': '*',
+          "x-access-token": "$token"
+        },
+      );
+      final _futureProfile1 = getProfileFromJson(res.body);
+      final futureProfile = _futureProfile1.data as Data;
+      FFAppState().id = "${futureProfile.id}";
+      FFAppState().firstname = "${futureProfile.fristName}";
+      FFAppState().lastname = "${futureProfile.lastName}";
+      FFAppState().actor = "${futureProfile.actor}";
+      if (res.statusCode == 200) {
+        await notifica(context, "แสดงข้อมูลโปรไฟล์สำเร็จ", color: Colors.green);
+        return futureProfile;
+      } else {
+        await notifica(context, "แสดงข้อมูลโปรไฟล์ไม่สำเร็จ");
+        await Future.delayed(Duration(seconds: 5));
+        setState(() {});
+      }
+    } catch (error) {
+      await notifica(context, "เกิดข้อผิดพลาด");
+      await Future.delayed(Duration(seconds: 5));
+      setState(() {});
+    }
+    return Data();
+  }
+
 // ใช้สำหรับทดสอบเท่านั้น
   late Future<String> testString;
   Future<String> gettest({required String token}) async {
@@ -161,6 +198,7 @@ class _ListOrderState extends State<ListOrder> {
       if (res.statusCode == 200) {
         for (int i = 0; i < futureManagerGroup.group!.length; i++) {
           textlsit1.add([]);
+          grouplist.add("${futureManagerGroup.group![i].nameGroup}");
           for (int a = 0;
               a < futureManagerGroup.group![i].member!.length;
               a++) {
@@ -201,7 +239,9 @@ class _ListOrderState extends State<ListOrder> {
     _tooltipBehavior =
         TooltipBehavior(enable: true, header: "", canShowMarker: false);
     _selectionBehavior = SelectionBehavior(enable: true);
+    // ใช่สำหรับทดสอบ
     testString = gettest(token: FFAppState().tokenStore);
+    futureProfile = getProfile(token: FFAppState().tokenStore);
   }
 
   // List<List<String>> _generateData() {
@@ -227,18 +267,6 @@ class _ListOrderState extends State<ListOrder> {
   @override
   Widget build(BuildContext context) {
     // FFAppState().itemsduty = "";
-    final List<ChartData> chartData = <ChartData>[
-      ChartData('สัปดาห์ที่ 1', 128, 129, 101, 20),
-      ChartData('สัปดาห์ที่ 2', 123, 92, 93, 80),
-      ChartData('สัปดาห์ที่ 3', 107, 106, 90, 120),
-      ChartData('สัปดาห์ที่ 4', 87, 95, 71, 100),
-      ChartData('สัปดาห์ที่ 5', 87, 95, 71, 100),
-      ChartData('สัปดาห์ที่ 6', 87, 95, 71, 100),
-      ChartData('สัปดาห์ที่ 7', 107, 106, 90, 120),
-      ChartData('สัปดาห์ที่ 8', 87, 95, 71, 100),
-      ChartData('สัปดาห์ที่ 9', 87, 95, 71, 100),
-      ChartData('สัปดาห์ที่ 10', 87, 95, 71, 100),
-    ];
     return Scaffold(
       key: scaffoldKey,
       // floatingActionButton: Row(
@@ -312,18 +340,41 @@ class _ListOrderState extends State<ListOrder> {
         backgroundColor: FlutterFlowTheme.of(context).secondaryWhite,
         automaticallyImplyLeading: false,
         actions: [
-          Align(
-            alignment: AlignmentDirectional(0, 0),
-            child: Text(
-              'Jonh Liam',
-              textAlign: TextAlign.center,
-              style: FlutterFlowTheme.of(context).title2.override(
-                    fontFamily: FlutterFlowTheme.of(context).title2Family,
-                    fontSize: 24,
-                  ),
-            ),
-          ),
-          const CustomButtonTest(),
+          FutureBuilder<Data>(
+              future: futureProfile,
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: SizedBox(
+                      width: 40,
+                      height: 5,
+                      child: CircularProgressIndicator(
+                        color: FlutterFlowTheme.of(context).primaryColor,
+                      ),
+                    ),
+                  );
+                }
+                final profileData = snapshot.data!;
+                return Row(
+                  children: [
+                    Align(
+                      alignment: AlignmentDirectional(0, 0),
+                      child: Text(
+                        '${profileData.fristName} ${profileData.lastName}',
+                        textAlign: TextAlign.center,
+                        style: FlutterFlowTheme.of(context).title2.override(
+                              fontFamily:
+                                  FlutterFlowTheme.of(context).title2Family,
+                              fontSize: 24,
+                            ),
+                      ),
+                    ),
+                    const CustomButtonTest(),
+                  ],
+                );
+              }),
+
           // TextButton(
           //     onPressed: () {
           //       Navigator.push(
@@ -343,295 +394,118 @@ class _ListOrderState extends State<ListOrder> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                  // width: MediaQuery.of(context).size.width * 0.80,
-                  child: SfCartesianChart(
-                      title: ChartTitle(
-                        text: "arms",
-                        textStyle: TextStyle(
-                          fontFamily: "Mitr",
-                          fontSize: 16,
-                          color: Color(0xFFF727272),
+            // จัดกลุ่มแล้ว
+            ExpandableTheme(
+              data: const ExpandableThemeData(
+                  iconPadding: EdgeInsets.fromLTRB(0, 15, 8, 8),
+                  animationDuration: Duration(milliseconds: 250)),
+              child: ExpandablePanel(
+                header: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+                      child: Text(
+                        "กลุ่ม",
+                        style: GoogleFonts.mitr(
+                            fontSize: 24, color: Color(0xFFF727272)),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+                      child: TextButton(
+                        onPressed: () {
+                          setState(() {
+                            stataShowManagerGroup = !stataShowManagerGroup;
+                          });
+                          print("$stataShowManagerGroup");
+                        },
+                        child: Text(
+                          stataShowManagerGroup ? "ซ่อน" : "แสดงทั้งหมด",
+                          style: GoogleFonts.mitr(
+                            fontSize: 24,
+                            color: FlutterFlowTheme.of(context).primaryBlue,
+                          ),
                         ),
                       ),
-                      loadMoreIndicatorBuilder: (BuildContext context,
-                          ChartSwipeDirection direction) {
-                        return getLoadMoreViewBuilder(context, direction);
-                      },
-                      plotAreaBorderWidth: 0,
-                      enableMultiSelection: true,
-                      tooltipBehavior: _tooltipBehavior,
-                      primaryXAxis: CategoryAxis(
-                          arrangeByIndex: false,
-                          majorGridLines: const MajorGridLines(width: 0)),
-                      primaryYAxis: NumericAxis(
-                          axisLine: const AxisLine(width: 0),
-                          labelFormat: "{value}",
-                          rangePadding: ChartRangePadding.normal,
-                          majorTickLines: const MajorTickLines(width: 0)),
-                      palette: <Color>[
-                    Color(0xFFF56CCF2),
-                    Color(0xFFF9B51E0),
-                    Color(0xFFF1033FD),
-                    Color(0xFFF2C94C)
+                    ),
                   ],
-                      series: <CartesianSeries>[
-                    ColumnSeries<ChartData, String>(
-                        animationDuration: 1500,
-                        dataLabelSettings: const DataLabelSettings(
-                          isVisible: true,
-                          textStyle: TextStyle(
-                            fontFamily: "Mitr",
-                            fontSize: 16,
-                            color: Color(0xFFF727272),
-                          ),
-                        ),
-                        selectionBehavior: _selectionBehavior,
-                        dataSource: chartData,
-                        xValueMapper: (ChartData data, _) => data.x,
-                        yValueMapper: (ChartData data, _) => data.y,
-                        name: "ชั่วโมงการทำงาน"),
-                    ColumnSeries<ChartData, String>(
-                        animationDuration: 1500,
-                        dataLabelSettings: const DataLabelSettings(
-                          isVisible: true,
-                          textStyle: TextStyle(
-                            fontFamily: "Mitr",
-                            fontSize: 16,
-                            color: Color(0xFFF727272),
-                          ),
-                        ),
-                        selectionBehavior: _selectionBehavior,
-                        dataSource: chartData,
-                        xValueMapper: (ChartData data, _) => data.x,
-                        yValueMapper: (ChartData data, _) => data.y1,
-                        name: "ค่าเฉลีย"),
-                    ColumnSeries<ChartData, String>(
-                        animationDuration: 1500,
-                        dataLabelSettings: const DataLabelSettings(
-                          isVisible: true,
-                          textStyle: TextStyle(
-                            fontFamily: "Mitr",
-                            fontSize: 16,
-                            color: Color(0xFFF727272),
-                          ),
-                        ),
-                        selectionBehavior: _selectionBehavior,
-                        dataSource: chartData,
-                        xValueMapper: (ChartData data, _) => data.x,
-                        yValueMapper: (ChartData data, _) => data.y2,
-                        name: "มัธยฐาน"),
-                    ColumnSeries<ChartData, String>(
-                        animationDuration: 1500,
-                        dataLabelSettings: const DataLabelSettings(
-                          isVisible: true,
-                          textStyle: TextStyle(
-                            fontFamily: "Mitr",
-                            fontSize: 16,
-                            color: Color(0xFFF727272),
-                          ),
-                        ),
-                        selectionBehavior: _selectionBehavior,
-                        dataSource: chartData,
-                        xValueMapper: (ChartData data, _) => data.x,
-                        yValueMapper: (ChartData data, _) => data.y3,
-                        name: "ฐานนิยม")
-                  ])),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(50,10,0,0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(10,0,0,0),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 25.0,
-                          height: 25.0,
-                          color: Color(0xFFF56CCF2),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(10,0,0,0),
-                          child: Text("ชั่วโมงการทำงาน",style: GoogleFonts.mitr(
-                                  fontSize: 24, color: Color(0xFFF727272)),
+                ),
+                collapsed: FutureBuilder<GetGroupManagerModelAdmin>(
+                    future: futureManagerGroup,
+                    builder: ((context, dataManagerGroup) {
+                      if (!dataManagerGroup.hasData) {
+                        return Center(
+                          child: SizedBox(
+                            width: 50,
+                            height: 50,
+                            child: CircularProgressIndicator(
+                              color: FlutterFlowTheme.of(context).primaryColor,
                             ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(10,0,0,0),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 25.0,
-                          height: 25.0,
-                          color: Color(0xFFF9B51E0),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(10,0,0,0),
-                          child: Text("ค่าเฉลีย",style: GoogleFonts.mitr(
-                                  fontSize: 24, color: Color(0xFFF727272)),
+                          ),
+                        );
+                      }
+                      if (dataManagerGroup == null) {
+                        return Center(
+                          child: SizedBox(
+                              width: 50, height: 50, child: Text("ว่าง")),
+                        );
+                      }
+                      if (dataManagerGroup.hasError) {
+                        return Center(
+                          child: Text("เกิดข้อผิดพลาด"),
+                        );
+                      }
+
+                      GetGroupManagerModelAdmin listviewdataManagerGroup =
+                          dataManagerGroup.data!;
+                      if (listviewdataManagerGroup.group == null) {
+                        return Center(
+                          child: SizedBox(
+                            width: 50,
+                            height: 50,
+                            child: CircularProgressIndicator(
+                              color: FlutterFlowTheme.of(context).primaryColor,
                             ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(10,0,0,0),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 25.0,
-                          height: 25.0,
-                          color: Color(0xFFF1033FD),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(10,0,0,0),
-                          child: Text("มัธยฐาน",style: GoogleFonts.mitr(
-                                  fontSize: 24, color: Color(0xFFF727272)),
-                            ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(10,0,0,0),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 25.0,
-                          height: 25.0,
-                          color: Color(0xFFF2C94C),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(10,0,0,0),
-                          child: Text("ฐานนิยม",style: GoogleFonts.mitr(
-                                  fontSize: 24, color: Color(0xFFF727272)),
-                            ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                ],
+                          ),
+                        );
+                      }
+                      return ListView.builder(
+                          physics: const NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          itemCount: listviewdataManagerGroup.group!.length,
+                          itemBuilder: ((context, indexGroup) {
+                            final indexnumber1 = indexGroup;
+                            return ExpansionTile(
+                                initiallyExpanded: stataShowManagerGroup,
+                                title: const SizedBox(),
+                                leading: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    "${indexnumber1 + 1} ${listviewdataManagerGroup.group![indexGroup].nameGroup}",
+                                    style: GoogleFonts.mitr(
+                                      fontSize: 20,
+                                      color: Color(0xFFF727272),
+                                    ),
+                                  ),
+                                ),
+                                children: [
+                                  ItemGroup(
+                                    listviewdataManagerGroup:
+                                        listviewdataManagerGroup,
+                                    stataShowManagerGroup:
+                                        stataShowManagerGroup,
+                                    textlsit1: textlsit1,
+                                    indexGroup: indexGroup,
+                                    grouplist: grouplist,
+                                  ),
+                                ]);
+                          }));
+                    })),
+                expanded: SizedBox(),
               ),
             ),
-
-            // ExpandableTheme(
-            //   data: const ExpandableThemeData(
-            //       iconPadding: EdgeInsets.fromLTRB(0, 15, 8, 8),
-            //       animationDuration: Duration(milliseconds: 250)),
-            //   child: ExpandablePanel(
-            //     header: Row(
-            //       mainAxisSize: MainAxisSize.max,
-            //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //       children: [
-            //         Padding(
-            //           padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
-            //           child: Text(
-            //             "จัดกลุ่มแล้ว",
-            //             style: GoogleFonts.mitr(
-            //                 fontSize: 24, color: Color(0xFFF727272)),
-            //           ),
-            //         ),
-            //         Padding(
-            //           padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-            //           child: TextButton(
-            //             onPressed: () {
-            //               setState(() {
-            //                 stataShowManagerGroup = !stataShowManagerGroup;
-            //               });
-            //               print("$stataShowManagerGroup");
-            //             },
-            //             child: Text(
-            //               stataShowManagerGroup ? "ซ่อน" : "แสดงทั้งหมด",
-            //               style: GoogleFonts.mitr(
-            //                 fontSize: 24,
-            //                 color: FlutterFlowTheme.of(context).primaryBlue,
-            //               ),
-            //             ),
-            //           ),
-            //         ),
-            //       ],
-            //     ),
-            //     collapsed: FutureBuilder<GetGroupManagerModelAdmin>(
-            //         future: futureManagerGroup,
-            //         builder: ((context, dataManagerGroup) {
-            //           if (!dataManagerGroup.hasData) {
-            //             return Center(
-            //               child: SizedBox(
-            //                 width: 50,
-            //                 height: 50,
-            //                 child: CircularProgressIndicator(
-            //                   color: FlutterFlowTheme.of(context).primaryColor,
-            //                 ),
-            //               ),
-            //             );
-            //           }
-            //           if (dataManagerGroup == null) {
-            //             return Center(
-            //               child: SizedBox(
-            //                   width: 50, height: 50, child: Text("ว่าง")),
-            //             );
-            //           }
-            //           if (dataManagerGroup.hasError) {
-            //             return Center(
-            //               child: Text("เกิดข้อผิดพลาด"),
-            //             );
-            //           }
-
-            //           GetGroupManagerModelAdmin listviewdataManagerGroup =
-            //               dataManagerGroup.data!;
-            //           if (listviewdataManagerGroup.group == null) {
-            //             return Center(
-            //               child: SizedBox(
-            //                 width: 50,
-            //                 height: 50,
-            //                 child: CircularProgressIndicator(
-            //                   color: FlutterFlowTheme.of(context).primaryColor,
-            //                 ),
-            //               ),
-            //             );
-            //           }
-            //           return ListView.builder(
-            //               physics: const NeverScrollableScrollPhysics(),
-            //               shrinkWrap: true,
-            //               itemCount: listviewdataManagerGroup.group!.length,
-            //               itemBuilder: ((context, indexGroup) {
-            //                 final indexnumber1 = indexGroup;
-            //                 return ExpansionTile(
-            //                     initiallyExpanded: stataShowManagerGroup,
-            //                     title: const SizedBox(),
-            //                     leading: Padding(
-            //                       padding: const EdgeInsets.all(8.0),
-            //                       child: Text(
-            //                         "${indexnumber1 + 1} ${listviewdataManagerGroup.group![indexGroup].nameGroup}",
-            //                         style: GoogleFonts.mitr(
-            //                           fontSize: 20,
-            //                           color: Color(0xFFF727272),
-            //                         ),
-            //                       ),
-            //                     ),
-            //                     children: [
-            //                       ItemGroup(
-            //                         listviewdataManagerGroup:
-            //                             listviewdataManagerGroup,
-            //                         stataShowManagerGroup:
-            //                             stataShowManagerGroup,
-            //                         textlsit1: textlsit1,
-            //                         indexGroup: indexGroup,
-            //                       ),
-            //                     ]);
-            //               }));
-            //         })),
-            //     expanded: SizedBox(),
-            //   ),
-            // ),
-
             Container(
               height: 100.0,
               width: 100.0,
@@ -640,24 +514,6 @@ class _ListOrderState extends State<ListOrder> {
         ),
       )),
     );
-  }
-
-  Widget getLoadMoreViewBuilder(
-      BuildContext context, ChartSwipeDirection direction) {
-    if (direction == ChartSwipeDirection.end) {
-      return FutureBuilder<String>(
-        future: testString,
-
-        /// Adding data by updateDataSource method
-        builder: (BuildContext futureContext, AsyncSnapshot<String> snapShot) {
-          return snapShot.connectionState != ConnectionState.done
-              ? const CircularProgressIndicator()
-              : SizedBox.fromSize(size: Size.zero);
-        },
-      );
-    } else {
-      return SizedBox.fromSize(size: Size.zero);
-    }
   }
 }
 
@@ -668,4 +524,151 @@ class ChartData {
   final double? y1;
   final double? y2;
   final double? y3;
+}
+
+class ItemGroup extends StatefulWidget {
+  GetGroupManagerModelAdmin listviewdataManagerGroup;
+  bool stataShowManagerGroup;
+  List<List<String>> textlsit1;
+  int indexGroup;
+  List<String> grouplist;
+  ItemGroup(
+      {super.key,
+      required this.listviewdataManagerGroup,
+      required this.stataShowManagerGroup,
+      required this.textlsit1,
+      required this.indexGroup,
+      required this.grouplist});
+
+  @override
+  State<ItemGroup> createState() => _ItemGroupState();
+}
+
+class _ItemGroupState extends State<ItemGroup> {
+  // แก้ไข actor
+  updateMyUserActor({
+    required String idUser,
+    required String actor,
+  }) async {
+    try {
+      final res = await http.patch(
+        Uri.parse("$url/api/admin/updateUser/$idUser"),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Access-Control_Allow_Origin': '*',
+          'x-access-token': '${FFAppState().tokenStore}',
+        },
+        body: convert.json.encode({"actor": "${actor}"}),
+      );
+      // await Future.delayed(Duration(seconds: 3));
+      // print("getGroupManagerModel body ${res.body}");
+      print("getGroupManagerModel state ${res.statusCode}");
+
+      if (res.statusCode == 200) {
+        await notifica(context, "แก้ไขบทบาทสำเร็จ", color: Colors.green);
+      } else {
+        await notifica(
+          context,
+          "แก้ไขบทบาทไม่สำเร็จ",
+        );
+        return res;
+      }
+    } catch (error) {
+      print(error);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: true,
+        itemCount: widget
+            .listviewdataManagerGroup.group![widget.indexGroup].member!.length,
+        itemBuilder: (context, indexName) {
+          return ListTile(
+            onTap: () {},
+            title: Padding(
+              padding: const EdgeInsets.fromLTRB(50, 0, 0, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // mainAxisSize: MainAxisSize.max,
+                children: [
+                  Text(
+                    "${widget.listviewdataManagerGroup.group![widget.indexGroup].member![indexName].fristName} ${widget.listviewdataManagerGroup.group![widget.indexGroup].member![indexName].lastName}",
+                    style: GoogleFonts.mitr(
+                      fontSize: 20,
+                      color: Color(0xFFF727272),
+                    ),
+                  ),
+                  Text(
+                    "${widget.listviewdataManagerGroup.group![widget.indexGroup].member![indexName].actor}",
+                    style: GoogleFonts.mitr(
+                      fontSize: 20,
+                      color: Color(0xFFF727272),
+                    ),
+                  ),
+                  Text(
+                    "48",
+                    style: GoogleFonts.mitr(
+                      fontSize: 20,
+                      color: Color(0xFFF727272),
+                    ),
+                  ),
+                  Text(
+                    "42",
+                    style: GoogleFonts.mitr(
+                      fontSize: 20,
+                      color: Color(0xFFF727272),
+                    ),
+                  ),
+                  Text(
+                    "50",
+                    style: GoogleFonts.mitr(
+                      fontSize: 20,
+                      color: Color(0xFFF727272),
+                    ),
+                  ),
+                  Text(
+                    "48",
+                    style: GoogleFonts.mitr(
+                      fontSize: 20,
+                      color: Color(0xFFF727272),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 181.0,
+                    height: 45,
+                    child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => Details()));
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                FlutterFlowTheme.of(context).primaryBlue,
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                              side: BorderSide.none,
+                            )),
+                        icon: Icon(Icons.arrow_circle_right_outlined),
+                        label: Text(
+                          "รายละเอียด",
+                          style: GoogleFonts.mitr(
+                            fontSize: 20,
+                            color: Colors.white,
+                          ),
+                        )),
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+    // subtitle: SizedBox(child: Text("tttttttt"),)
+  }
 }

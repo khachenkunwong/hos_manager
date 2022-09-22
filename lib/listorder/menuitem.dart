@@ -111,8 +111,14 @@ class MenuItems {
         break;
       case MenuItems.editProfile:
         //Do something
-        Navigator.push(context,
-            MaterialPageRoute(builder: (context) => EditProfileWidget()));
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => EditProfileWidget(
+                      name: FFAppState().firstname,
+                      nickname: FFAppState().lastname,
+                      actor: FFAppState().actor
+                    )));
         break;
       case MenuItems.logout:
         //Do something

@@ -18,8 +18,13 @@ class FFAppState {
     _tokenStore = prefs.getString('ff_tokenStore') ?? _tokenStore;
     _namegroup = prefs.getString('ff_namegroup') ?? _namegroup;
     _itemsduty = prefs.getString('ff_itemsduty') ?? _itemsduty;
-    _itemsdutyupdata = prefs.getStringList('ff_itemsdutyupdata') ?? _itemsdutyupdata;
+    _itemsdutyupdata =
+        prefs.getStringList('ff_itemsdutyupdata') ?? _itemsdutyupdata;
     _myemail = prefs.getString('ff_myemail') ?? _myemail;
+    firstname = prefs.getString('ff_firstname') ?? firstname;
+    lastname = prefs.getString('ff_lastname') ?? lastname;
+    actor = prefs.getString('ff_actor') ?? actor;
+    id = prefs.getString('ff_id') ?? id;
   }
 
   late SharedPreferences prefs;
@@ -45,6 +50,31 @@ class FFAppState {
     prefs.setString('ff_namegroup', _value);
   }
 
+  String _firstname = '';
+  String get firstname => _firstname;
+  set firstname(String _value) {
+    _firstname = _value;
+    prefs.setString('ff_firstname', _value);
+  }
+  String _lastname = '';
+  String get lastname => _lastname;
+  set lastname(String _value) {
+    _lastname = _value;
+    prefs.setString('ff_lastname', _value);
+  }
+  String _actor = '';
+  String get actor => _actor;
+  set actor(String _value) {
+    _actor = _value;
+    prefs.setString('ff_actor', _value);
+  }
+  String _id = '';
+  String get id => _id;
+  set id(String _value) {
+    _id = _value;
+    prefs.setString('ff_id', _value);
+  }
+
   String _itemsduty = '';
   String get itemsduty => _itemsduty;
   set itemsduty(String _value) {
@@ -52,13 +82,14 @@ class FFAppState {
     prefs.setString('ff_itemsduty', _value);
   }
 
+  
+
   String _myemail = '';
   String get myemail => _myemail;
   set myemail(String _value) {
     _myemail = _value;
     prefs.setString('ff_myemail', _value);
   }
-
 
   List<String> _itemsdutyupdata = [];
   List<String> get itemsdutyupdata => _itemsdutyupdata;
@@ -71,8 +102,9 @@ class FFAppState {
     _itemsdutyupdata.add(_value);
     prefs.setStringList('ff_itemsdutyupdata', _itemsdutyupdata);
   }
-  void insertToItemsduty(String _value , int index) {
-    _itemsdutyupdata.insert(index,_value);
+
+  void insertToItemsduty(String _value, int index) {
+    _itemsdutyupdata.insert(index, _value);
     prefs.setStringList('ff_itemsdutyupdata', _itemsdutyupdata);
   }
 
